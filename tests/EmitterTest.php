@@ -3,6 +3,7 @@
 namespace Test;
 
 use App\Observer\Emitter;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
@@ -19,7 +20,7 @@ class EmitterTest extends TestCase
     public function testEmitEventTriggerCallable(): void
     {
         $emitter = Emitter::getInstance();
-        $listener = $this->getMockBuilder(stdClass::class)->addMethods(["onSend"])->getMock();
+        $listener = $this->mockListener();
 
         $emitter->on("Test.event", [$listener, "onSend"]);
 
@@ -31,7 +32,7 @@ class EmitterTest extends TestCase
     public function testEmitEventTriggerCallableManyTime(): void
     {
         $emitter = Emitter::getInstance();
-        $listener = $this->getMockBuilder(stdClass::class)->addMethods(["onSend"])->getMock();
+        $listener = $this->mockListener();
 
         $emitter->on("Test.event", [$listener, "onSend"]);
 
@@ -39,5 +40,10 @@ class EmitterTest extends TestCase
 
         $emitter->emit("Test.event", "John");
         $emitter->emit("Test.event", "John");
+    }
+
+    private function mockListener(): MockObject
+    {
+        return $this->getMockBuilder(stdClass::class)->addMethods(["onSend"])->getMock();
     }
 }
