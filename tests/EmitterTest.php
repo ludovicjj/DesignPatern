@@ -2,12 +2,16 @@
 
 namespace Test;
 
+use App\Observer\Emitter;
 use PHPUnit\Framework\TestCase;
 
 class EmitterTest extends TestCase
 {
-    public function testAreWorking(): void
+    public function testEmitterInstanceIsSingleton(): void
     {
-        $this->assertEquals(2, 1+1);
+        $emitter1 = Emitter::getInstance();
+        $emitter2 = Emitter::getInstance();
+
+        $this->assertSame($emitter1, $emitter2);
     }
 }
