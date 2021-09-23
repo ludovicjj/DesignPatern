@@ -32,13 +32,16 @@ class Emitter
      * @param string $event Event name
      * @param callable $callable Callable to run for this event
      * @param int $priority The priority to calling callback, default 0.
+     *
+     * @return Listener
      */
-    public function on(string $event, callable $callable, int $priority = 0): void
+    public function on(string $event, callable $callable, int $priority = 0): Listener
     {
         $listener = new Listener($callable, $priority);
 
         $this->listeners[$event][] = $listener;
         $this->sortDescListener($event);
+        return $listener;
     }
 
     /**
