@@ -110,6 +110,18 @@ class EmitterTest extends TestCase
         $this->assertEquals(4, $listener->getCalls());
     }
 
+    public function testStopPropagation(): void
+    {
+        $event = $this->mockEvent(["onFirst", "onLast"]);
+        $this->emitter->on("Test.propagation", [$event, "onFirst"], 0, true);
+        $this->emitter->on("Test.propagation", [$event, "onLast"]);
+
+        $event->expects($this->once())->method("onFirst");
+        $event->expects($this->never())->method("onLast");
+
+        $this->emitter->emit("Test.propagation");
+    }
+
     private function mockEvent(array $methods = ["onSend"]): MockObject
     {
         return $this->getMockBuilder(stdClass::class)->addMethods($methods)->getMock();
