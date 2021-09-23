@@ -38,6 +38,7 @@ class Emitter
         $listener = new Listener($callable, $priority);
 
         $this->listeners[$event][] = $listener;
+        $this->sortDescListener($event);
     }
 
     /**
@@ -54,5 +55,20 @@ class Emitter
                 $listener->handle($args);
             }
         }
+    }
+
+    /**
+     * Desc sort listener by priority.
+     *
+     * @param string $event
+     */
+    private function sortDescListener(string $event): void
+    {
+        uasort($this->listeners[$event], function ($a, $b) {
+            if ($a->getPriority() === $b->getPriority()) {
+                return 0;
+            }
+           return $a->getPriority() < $b->getPriority();
+        });
     }
 }
