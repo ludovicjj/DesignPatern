@@ -7,7 +7,7 @@ class Emitter
     private static $_instance;
 
     /**
-     * @var callable[][]
+     * @var Listener[][]
      */
     private $listeners = [];
 
@@ -26,27 +26,32 @@ class Emitter
     }
 
     /**
-     * Setup event
+     * Register event.
+     * Associates any valid PHP callable to an event with priority.
      *
      * @param string $event Event name
      * @param callable $callable Callable to run for this event
+     * @param int $priority The priority to calling callback, default 0.
      */
-    public function on(string $event, callable $callable)
+    public function on(string $event, callable $callable, int $priority = 0): void
     {
-        $this->listeners[$event][] = $callable;
+        $listener = new Listener($callable, $priority);
+
+        $this->listeners[$event][] = $listener;
     }
 
     /**
-     * Send event
+     * Send event.
+     * Execute callable(s) for a given event.
      *
      * @param string $event Event name
      * @param mixed ...$args Parameters for callable
      */
-    public function emit(string $event, ...$args)
+    public function emit(string $event, ...$args): void
     {
         if (array_key_exists($event, $this->listeners)) {
             foreach ($this->listeners[$event] as $listener) {
-                call_user_func_array($listener, $args);
+                $listener->handle($args);
             }
         }
     }
