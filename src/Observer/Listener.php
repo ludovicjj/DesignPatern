@@ -35,4 +35,9 @@ class Listener
     {
         return call_user_func_array($this->callable, $args);
     }
+
+    public function getPriority(): int
+    {
+        return $this->priority;
+    }
 }
