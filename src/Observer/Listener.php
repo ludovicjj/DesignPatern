@@ -33,16 +33,24 @@ class Listener
     private $calls;
 
     /**
+     * Define if all next listeners bind to this event will not be executed after current listener.
+     * @var bool
+     */
+    private $propagation;
+
+    /**
      * Listener constructor.
      * @param callable $callable
      * @param int $priority
+     * @param bool $stopPropagation
      */
-    public function __construct(callable $callable, int $priority)
+    public function __construct(callable $callable, int $priority, bool $stopPropagation)
     {
         $this->callable = $callable;
         $this->priority = $priority;
         $this->once = false;
         $this->calls = 0;
+        $this->propagation = $stopPropagation;
     }
 
     /**
@@ -76,5 +84,11 @@ class Listener
     public function getCalls(): int
     {
         return $this->calls;
+    }
+
+
+    public function getPropagation(): bool
+    {
+        return $this->propagation;
     }
 }
