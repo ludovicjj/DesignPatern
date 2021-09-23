@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use App\Observer\DuplicatedEventException;
 use App\Observer\Emitter;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -136,6 +137,15 @@ class EmitterTest extends TestCase
 
         $this->emitter->emit("Test.propagation");
         $this->emitter->emit("Test.propagation");
+    }
+
+    public function testRegisterEventWithSameCallableTwice(): void
+    {
+        $event = $this->mockEvent();
+
+        $this->emitter->on("Test.propagation", [$event, "onSend"]);
+        $this->expectException(DuplicatedEventException::class);
+        $this->emitter->on("Test.propagation", [$event, "onSend"]);
     }
 
     private function mockEvent(array $methods = ["onSend"]): MockObject
