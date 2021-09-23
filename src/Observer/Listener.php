@@ -81,6 +81,11 @@ class Listener
         return $this->priority;
     }
 
+    public function getCallable(): callable
+    {
+        return $this->callable;
+    }
+
     public function getCalls(): int
     {
         return $this->calls;
