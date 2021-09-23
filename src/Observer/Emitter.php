@@ -31,13 +31,15 @@ class Emitter
      *
      * @param string $event Event name
      * @param callable $callable Callable associate to this event
-     * @param int $priority The priority to calling callback, default 0.
+     * @param int $priority The priority to calling callback. High priority will be executed first. Default 0.
+     * @param bool $stopPropagation If one listener stop propagation,
+     * all next listeners bind to this event will not be executed. Default false.
      *
      * @return Listener
      */
-    public function on(string $event, callable $callable, int $priority = 0): Listener
+    public function on(string $event, callable $callable, int $priority = 0, bool $stopPropagation = false): Listener
     {
-        $listener = new Listener($callable, $priority);
+        $listener = new Listener($callable, $priority, $stopPropagation);
 
         $this->listeners[$event][] = $listener;
         $this->sortDescListener($event);
@@ -50,13 +52,15 @@ class Emitter
      *
      * @param string $event Event name
      * @param callable $callable Callable associate to this event
-     * @param int $priority The priority to calling callback, default 0.
+     * @param int $priority The priority to calling listener. High priority will be executed first.Default 0.
+     * @param bool $stopPropagation If one listener stop propagation,
+     * all next listeners bind to this event will not be executed. Default false.
      *
      * @return Listener
      */
-    public function once(string $event, callable $callable, int $priority = 0): Listener
+    public function once(string $event, callable $callable, int $priority = 0, bool $stopPropagation = false): Listener
     {
-        return $this->on($event, $callable, $priority)->once();
+        return $this->on($event, $callable, $priority, $stopPropagation)->once();
     }
 
     /**
@@ -70,6 +74,10 @@ class Emitter
     {
         if (array_key_exists($event, $this->listeners)) {
             foreach ($this->listeners[$event] as $listener) {
+                if ($listener->getPropagation()) {
+                    $listener->handle($args);
+                    return;
+                }
                 $listener->handle($args);
             }
         }
