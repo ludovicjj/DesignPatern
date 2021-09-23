@@ -35,10 +35,16 @@ class Emitter
      * @param bool $stopPropagation If one listener stop propagation,
      * all next listeners bind to this event will not be executed. Default false.
      *
+     * @throws DuplicatedEventException
      * @return Listener
      */
     public function on(string $event, callable $callable, int $priority = 0, bool $stopPropagation = false): Listener
     {
+        if (!$this->hasEvent($event)) {
+            $this->listeners[$event] = [];
+        }
+
+        $this->isAlreadyUsedCallable($event, $callable);
         $listener = new Listener($callable, $priority, $stopPropagation);
 
         $this->listeners[$event][] = $listener;
@@ -56,6 +62,7 @@ class Emitter
      * @param bool $stopPropagation If one listener stop propagation,
      * all next listeners bind to this event will not be executed. Default false.
      *
+     * @throws DuplicatedEventException
      * @return Listener
      */
     public function once(string $event, callable $callable, int $priority = 0, bool $stopPropagation = false): Listener
@@ -72,7 +79,7 @@ class Emitter
      */
     public function emit(string $event, ...$args): void
     {
-        if (array_key_exists($event, $this->listeners)) {
+        if ($this->hasEvent($event)) {
             foreach ($this->listeners[$event] as $listener) {
                 if ($listener->getPropagation()) {
                     $listener->handle($args);
@@ -96,5 +103,28 @@ class Emitter
             }
            return $a->getPriority() < $b->getPriority();
         });
+    }
+
+    /**
+     * @param string $event
+     * @param callable $callable
+     *
+     * @return bool
+     *
+     * @throws DuplicatedEventException
+     */
+    private function isAlreadyUsedCallable(string $event, callable $callable): bool
+    {
+        foreach ($this->listeners[$event] as $listener) {
+            if ($listener->getCallable() === $callable) {
+                throw new DuplicatedEventException();
+            }
+        }
+        return false;
+    }
+
+    private function hasEvent($event): bool
+    {
+        return array_key_exists($event, $this->listeners);
     }
 }
