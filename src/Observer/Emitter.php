@@ -26,11 +26,11 @@ class Emitter
     }
 
     /**
-     * Register event.
-     * Associates any valid PHP callable to an event with priority.
+     * Register an event who will be executed many times.
+     * Associates any valid PHP callable to an event name and with priority.
      *
      * @param string $event Event name
-     * @param callable $callable Callable to run for this event
+     * @param callable $callable Callable associate to this event
      * @param int $priority The priority to calling callback, default 0.
      *
      * @return Listener
@@ -42,6 +42,21 @@ class Emitter
         $this->listeners[$event][] = $listener;
         $this->sortDescListener($event);
         return $listener;
+    }
+
+    /**
+     * Register an event who will be executed once.
+     * Associates any valid PHP callable to an event name and with priority.
+     *
+     * @param string $event Event name
+     * @param callable $callable Callable associate to this event
+     * @param int $priority The priority to calling callback, default 0.
+     *
+     * @return Listener
+     */
+    public function once(string $event, callable $callable, int $priority = 0): Listener
+    {
+        return $this->on($event, $callable, $priority)->once();
     }
 
     /**

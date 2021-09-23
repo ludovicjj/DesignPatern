@@ -36,22 +36,22 @@ class EmitterTest extends TestCase
 
     public function testEmitEventTriggerCallable(): void
     {
-        $listener = $this->mockListener();
+        $event = $this->mockEvent();
 
-        $this->emitter->on("Test.event", [$listener, "onSend"]);
+        $this->emitter->on("Test.event", [$event, "onSend"]);
 
-        $listener->expects($this->once())->method("onSend")->with($this->stringContains('John'));
+        $event->expects($this->once())->method("onSend")->with($this->stringContains('John'));
 
         $this->emitter->emit("Test.event", "John");
     }
 
     public function testEmitEventTriggerCallableManyTime(): void
     {
-        $listener = $this->mockListener();
+        $event = $this->mockEvent();
 
-        $this->emitter->on("Test.event", [$listener, "onSend"]);
+        $this->emitter->on("Test.event", [$event, "onSend"]);
 
-        $listener->expects($this->exactly(2))->method("onSend")->with($this->stringContains('John'));
+        $event->expects($this->exactly(2))->method("onSend")->with($this->stringContains('John'));
 
         $this->emitter->emit("Test.event", "John");
         $this->emitter->emit("Test.event", "John");
@@ -59,30 +59,58 @@ class EmitterTest extends TestCase
 
     public function testEmitEventTriggerCallableWithPriority(): void
     {
-        $listener = $this->mockListener(["onFirst", "onSecond", "onLast"]);
+        $event = $this->mockEvent(["onFirst", "onSecond", "onLast"]);
 
-        $this->emitter->on("Test.priority", [$listener, "onLast"]);
-        $this->emitter->on("Test.priority", [$listener, "onSecond"], 1);
-        $this->emitter->on("Test.priority", [$listener, "onFirst"], 100);
+        $this->emitter->on("Test.priority", [$event, "onLast"]);
+        $this->emitter->on("Test.priority", [$event, "onSecond"], 1);
+        $this->emitter->on("Test.priority", [$event, "onFirst"], 100);
 
         $flag = null;
 
-        $listener->expects($this->once())->method("onFirst")->willReturnCallback(function () use (&$flag) {
+        $event->expects($this->once())->method("onFirst")->willReturnCallback(function () use (&$flag) {
             $this->assertNull($flag);
             $flag = "first";
         });
-        $listener->expects($this->once())->method("onSecond")->willReturnCallback(function () use (&$flag) {
+        $event->expects($this->once())->method("onSecond")->willReturnCallback(function () use (&$flag) {
             $this->assertEquals("first", $flag);
             $flag = "second";
         });
-        $listener->expects($this->once())->method("onLast")->willReturnCallback(function () use (&$flag) {
+        $event->expects($this->once())->method("onLast")->willReturnCallback(function () use (&$flag) {
             $this->assertEquals("second", $flag);
         });
 
         $this->emitter->emit("Test.priority");
     }
 
-    private function mockListener(array $methods = ["onSend"]): MockObject
+    public function testEmitEventTriggerCallableOnce(): void
+    {
+        $event = $this->mockEvent();
+        $listener = $this->emitter->once("Test.once", [$event, "onSend"]);
+        $event->expects($this->once())->method("onSend");
+
+        $this->emitter->emit("Test.once");
+        $this->emitter->emit("Test.once");
+        $this->emitter->emit("Test.once");
+        $this->emitter->emit("Test.once");
+
+        $this->assertEquals(1, $listener->getCalls());
+    }
+
+    public function testCalls(): void
+    {
+        $event = $this->mockEvent();
+        $listener = $this->emitter->on("Test.once", [$event, "onSend"]);
+        $event->expects($this->exactly(4))->method("onSend");
+
+        $this->emitter->emit("Test.once");
+        $this->emitter->emit("Test.once");
+        $this->emitter->emit("Test.once");
+        $this->emitter->emit("Test.once");
+
+        $this->assertEquals(4, $listener->getCalls());
+    }
+
+    private function mockEvent(array $methods = ["onSend"]): MockObject
     {
         return $this->getMockBuilder(stdClass::class)->addMethods($methods)->getMock();
     }
