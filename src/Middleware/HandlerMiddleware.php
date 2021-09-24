@@ -48,6 +48,7 @@ class HandlerMiddleware implements RequestHandlerInterface
         $this->index++;
 
         if (is_null($middleware)) {
+            // init response for middleware B
             return new Response(200, ["X-Powered-By" => "toto"]);
         }
         return $middleware->process($request, $this);
