@@ -21,11 +21,6 @@ class HandlerMiddleware implements RequestHandlerInterface
     private $index = 0;
 
     /**
-     * @var ResponseInterface $response
-     */
-    private $response;
-
-    /**
      * Register middleware
      *
      * @param MiddlewareInterface $middleware
@@ -33,9 +28,7 @@ class HandlerMiddleware implements RequestHandlerInterface
     public function pipe(MiddlewareInterface $middleware): void
     {
         $this->middlewares[] = $middleware;
-        $this->response = new Response();
     }
-
 
     /**
      * Execute middleware
@@ -48,8 +41,8 @@ class HandlerMiddleware implements RequestHandlerInterface
         $this->index++;
 
         if (is_null($middleware)) {
-            // init response for middleware B
-            return new Response(200, ["X-Powered-By" => "toto"]);
+            // Init response if current middleware call next middleware and next middleware is null
+            return new Response();
         }
         return $middleware->process($request, $this);
     }
