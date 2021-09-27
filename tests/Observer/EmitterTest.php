@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests;
+namespace Tests\Observer;
 
 use App\Observer\DuplicatedEventException;
 use App\Observer\Emitter;
