@@ -11,9 +11,12 @@ use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Generator;
+use Tests\ConsoleDebugger;
 
 class HandleMiddlewareTest extends TestCase
 {
+    use ConsoleDebugger;
+
     public function testCountMiddlewaresRegister(): void
     {
         $handler = new HandlerMiddleware();
@@ -21,11 +24,16 @@ class HandleMiddlewareTest extends TestCase
         $handler->pipe(new PoweredByBMiddleware());
 
         $reflectionClass = new \ReflectionClass(HandlerMiddleware::class);
-        $property = $reflectionClass->getProperty("middlewares");
-        $property->setAccessible(true);
-        $middlewares = $property->getValue($handler);
+        try {
+            $property = $reflectionClass->getProperty("middlewares");
+            $property->setAccessible(true);
+            $middlewares = $property->getValue($handler);
 
-        $this->assertCount(2, $middlewares);
+            $this->assertCount(2, $middlewares);
+        } catch (\ReflectionException $e) {
+            $this->debugger($e->getMessage(), "warning");
+            $this->fail($e->getMessage());
+        }
     }
 
     public function testResponseHasHeaderWithValueFromMiddlewareA(): void
