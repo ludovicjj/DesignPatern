@@ -24,4 +24,18 @@ class HandleMiddlewareTest extends TestCase
 
         $this->assertCount(2, $middlewares);
     }
+
+    public function testResponseHasHeader(): void
+    {
+        $request = ServerRequest::fromGlobals();
+
+        $handler = new HandlerMiddleware();
+        $handler->pipe(new PoweredByAMiddleware());
+        $handler->pipe(new PoweredByBMiddleware());
+
+        $response = $handler->handle($request);
+        $this->assertInstanceOf(ResponseInterface::class, $response);
+        $header = $response->getHeader("X-Powered-By");
+        $this->assertTrue(in_array("Middleware-A", $header,true));
+    }
 }
