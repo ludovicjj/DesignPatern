@@ -13,7 +13,7 @@ class HandlerMiddleware implements RequestHandlerInterface
     /**
      * @var MiddlewareInterface[] $middlewares
      */
-    public $middlewares = [];
+    private $middlewares = [];
 
     /**
      * @var int $index
