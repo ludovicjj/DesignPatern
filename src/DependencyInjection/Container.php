@@ -1,24 +1,33 @@
 <?php
 
-
 namespace App\DependencyInjection;
 
-
 use Psr\Container\ContainerExceptionInterface;
-use Psr\Container\NotFoundExceptionInterface;
+use ReflectionClass;
 
 class Container implements ContainerInterface
 {
-
     private $instances = [];
 
     public function get(string $id)
     {
-        // TODO: Implement get() method.
+        if (!$this->has($id)) {
+
+            if (!class_exists($id) && !interface_exists($id)) {
+                throw new NotFoundException();
+            }
+
+            $reflectionClass = new ReflectionClass($id);
+            if ($reflectionClass->isInstantiable()) {
+                $this->instances[$id] = $reflectionClass->newInstance();
+            }
+        }
+
+        return $this->instances[$id];
     }
 
     public function has(string $id): bool
     {
-        // TODO: Implement has() method.
+        return array_key_exists($id, $this->instances);
     }
 }
