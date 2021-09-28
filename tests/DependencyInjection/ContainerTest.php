@@ -4,10 +4,11 @@
 namespace Tests\DependencyInjection;
 
 use App\DependencyInjection\Container;
+use App\DependencyInjection\Definition;
 use PHPUnit\Framework\TestCase;
-use Psr\Container\NotFoundExceptionInterface;
 use Tests\ConsoleDebugger;
 use Tests\DependencyInjection\Classes\Foo;
+use Tests\DependencyInjection\Classes\Interfaces\FooInterface;
 
 class ContainerTest extends TestCase
 {
@@ -23,33 +24,30 @@ class ContainerTest extends TestCase
        $this->container = new Container();
     }
 
-    public function testSingleton(): void
+    public function testResolveClassWithoutDependency()
     {
-        $this->assertEquals(
-            spl_object_id($this->container->get(Foo::class)),
-            spl_object_id($this->container->get(Foo::class))
-        );
+        $foo = $this->container->get(Foo::class);
+        $definition = $this->container->getDefinition(Foo::class);
 
+        $this->assertInstanceOf(Foo::class, $foo);
+        $this->assertInstanceOf(Definition::class, $definition);
+        $this->assertCount(0, $definition->getAlias());
+        $this->assertEquals(Foo::class, $definition->getId());
     }
 
-    /**
-     * @dataProvider providerGetInstanceException
-     * @param string $id
-     */
-    public function testGetInstanceException(string $id)
+    public function testResolveClassWithoutDependencyAndWithAlias()
     {
-        $this->expectException(NotFoundExceptionInterface::class);
-        $this->container->get($id);
+        $this->container->addAlias("FooInterface", Foo::class);
+        $this->container->get(Foo::class);
+        $definition = $this->container->getDefinition(Foo::class);
+
+        $this->assertCount(1, $definition->getAlias());
     }
 
-    public function providerGetInstanceException()
+    public function testResolveInterface()
     {
-        yield [
-            "Tests\DependencyInjection\Classes\Unknown"
-        ];
-
-        yield [
-            "hello world"
-        ];
+        $this->container->addAlias(FooInterface::class, Foo::class);
+        $foo = $this->container->get(FooInterface::class);
+        $this->assertInstanceOf(Foo::class, $foo);
     }
 }
