@@ -4,6 +4,7 @@ namespace App\DependencyInjection;
 
 use Psr\Container\ContainerExceptionInterface;
 use ReflectionClass;
+use ReflectionParameter;
 
 class Container implements ContainerInterface
 {
@@ -55,18 +56,18 @@ class Container implements ContainerInterface
             return;
         }
 
-        $reflectionMethod = $reflectionClass->getConstructor();
-
-        // case constructor
-        if ($reflectionMethod !== null) {
-            //Todo resolve construct
+        if ($this->hasConstructor($reflectionClass)) {
+            $parameters = $this->getConstructorParameters($reflectionClass);
+            $dependencies = (!empty($parameters)) ? $this->getDefinitionParameters($parameters): [];
+        } else {
+            $dependencies = [];
         }
 
         $alias = array_filter($this->aliases, function ($alias) use ($id) {
             return $alias === $id;
         });
 
-        $this->definitions[$id] = new Definition($id, $alias);
+        $this->definitions[$id] = new Definition($id, $alias, $dependencies);
     }
 
     /**
@@ -92,5 +93,29 @@ class Container implements ContainerInterface
     public function getDefinitions(): array
     {
         return $this->definitions;
+    }
+
+    private function hasConstructor(ReflectionClass $reflectionClass): bool
+    {
+        return $reflectionClass->getConstructor() !== null;
+    }
+
+    /**
+     * @param ReflectionClass $reflectionClass
+     * @return array|ReflectionParameter[]
+     */
+    private function getConstructorParameters(ReflectionClass $reflectionClass): array
+    {
+        $reflectionMethod = $reflectionClass->getConstructor();
+        return $reflectionMethod->getParameters();
+    }
+
+    private function getDefinitionParameters(array $reflectionParameters): array
+    {
+        return array_map(function (ReflectionParameter $parameter) {
+            return $this->getDefinition($parameter->getClass()->getName());
+        }, array_filter($reflectionParameters, function ($parameter) {
+            return $parameter->getClass();
+        }));
     }
 }
