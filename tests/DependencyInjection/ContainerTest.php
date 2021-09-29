@@ -7,6 +7,7 @@ use App\DependencyInjection\Container;
 use App\DependencyInjection\Definition;
 use PHPUnit\Framework\TestCase;
 use Tests\ConsoleDebugger;
+use Tests\DependencyInjection\Classes\Bar;
 use Tests\DependencyInjection\Classes\Foo;
 use Tests\DependencyInjection\Classes\Interfaces\FooInterface;
 
@@ -24,7 +25,7 @@ class ContainerTest extends TestCase
        $this->container = new Container();
     }
 
-    public function testResolveClassWithoutDependency()
+    public function testResolveClassWithoutDependency(): void
     {
         $foo = $this->container->get(Foo::class);
         $definition = $this->container->getDefinition(Foo::class);
@@ -35,7 +36,7 @@ class ContainerTest extends TestCase
         $this->assertEquals(Foo::class, $definition->getId());
     }
 
-    public function testResolveClassWithoutDependencyAndWithAlias()
+    public function testResolveClassWithoutDependencyAndWithAlias(): void
     {
         $this->container->addAlias("FooInterface", Foo::class);
         $this->container->get(Foo::class);
@@ -44,10 +45,16 @@ class ContainerTest extends TestCase
         $this->assertCount(1, $definition->getAlias());
     }
 
-    public function testResolveInterface()
+    public function testResolveInterface(): void
     {
         $this->container->addAlias(FooInterface::class, Foo::class);
         $foo = $this->container->get(FooInterface::class);
         $this->assertInstanceOf(Foo::class, $foo);
+    }
+
+    public function testResolveClassWithDependency(): void
+    {
+        $bar = $this->container->get(Bar::class);
+        $this->assertInstanceOf(Bar::class, $bar);
     }
 }
