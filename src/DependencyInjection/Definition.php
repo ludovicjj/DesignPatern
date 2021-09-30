@@ -65,7 +65,9 @@ class Definition
 
             // get dependency with default value.
             if ($parameter->isOptional()) {
-                return $parameter->getDefaultValue();
+                if ($parameter->isDefaultValueAvailable()) {
+                    return $parameter->getDefaultValue();
+                }
             }
 
             // get dependency register as parameter.
