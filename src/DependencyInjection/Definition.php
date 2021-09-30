@@ -4,6 +4,7 @@
 namespace App\DependencyInjection;
 
 use ReflectionClass;
+use ReflectionParameter;
 
 class Definition
 {
@@ -47,7 +48,7 @@ class Definition
         return $this->dependencies;
     }
 
-    public function newInstance()
+    public function newInstance(ContainerInterface $container)
     {
         $reflectionClass = new ReflectionClass($this->id);
         $constructor = $reflectionClass->getConstructor();
@@ -56,9 +57,21 @@ class Definition
             return $reflectionClass->newInstance();
         }
 
-        $args = array_map(function (Definition $dependency) {
-            return $dependency->newInstance();
-        }, $this->getDependencies());
+        $args = array_map(function (ReflectionParameter $parameter) use ($container) {
+            // get dependency class.
+            if ($parameter->getClass()) {
+                return $container->get($parameter->getClass()->getName());
+            }
+
+            // get dependency with default value.
+            if ($parameter->isOptional()) {
+                return $parameter->getDefaultValue();
+            }
+
+            // get dependency register as parameter.
+            return $container->getParameter($parameter->getName());
+
+        }, $constructor->getParameters());
 
         return $reflectionClass->newInstanceArgs($args);
     }
