@@ -2,7 +2,6 @@
 
 namespace App\DependencyInjection;
 
-use Psr\Container\ContainerExceptionInterface;
 use ReflectionClass;
 use ReflectionParameter;
 
@@ -13,6 +12,7 @@ class Container implements ContainerInterface
     /** @var Definition[] $definitions */
     private $definitions = [];
 
+    /** @var string[] */
     private $aliases = [];
 
     /** @var mixed[] */
@@ -21,13 +21,12 @@ class Container implements ContainerInterface
     public function get(string $id)
     {
         if (!$this->has($id)) {
-
             if (!class_exists($id) && !interface_exists($id)) {
                 throw new NotFoundException();
             }
 
-            $instance = $this->getDefinition($id)->newInstance($this);
-            $this->instances[$id] = $instance;
+            $definition = $this->getDefinition($id);
+            $this->instances[$id] = $definition->newInstance($this);
         }
 
         return $this->instances[$id];
