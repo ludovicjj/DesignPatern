@@ -27,12 +27,17 @@ class ContainerTest extends TestCase
        $this->container = new Container();
     }
 
+    public function testResolveClassWithDependency(): void
+    {
+        $bar = $this->container->get(Bar::class);
+        $this->assertInstanceOf(Bar::class, $bar);
+    }
+
     public function testResolveClassWithRegisterParameters(): void
     {
         $this->container
             ->addParameter("lastname", "Doe")
             ->addParameter("firstname", "John")
-            ->addParameter("birthday", new DateTimeImmutable("now"))
             ->addParameter("info", ["age" => 18]);
 
         $user = $this->container->get(User::class);
@@ -40,10 +45,9 @@ class ContainerTest extends TestCase
         $this->assertInstanceOf(User::class, $user);
         $this->assertEquals("Doe", $user->getLastname());
         $this->assertEquals("John", $user->getFirstname());
-        $this->assertInstanceOf(DateTimeImmutable::class, $user->getBirthday());
-        $this->assertIsArray($user->getInfo());
         $this->assertArrayHasKey("age", $user->getInfo());
         $this->assertTrue(in_array(18, $user->getInfo()));
+        $this->assertNull($user->getOther());
     }
 
     public function testResolveClassWithoutDependency(): void
@@ -73,9 +77,4 @@ class ContainerTest extends TestCase
         $this->assertInstanceOf(Foo::class, $foo);
     }
 
-    public function testResolveClassWithDependency(): void
-    {
-        $bar = $this->container->get(Bar::class);
-        $this->assertInstanceOf(Bar::class, $bar);
-    }
 }

@@ -16,19 +16,26 @@ class User
     /** @var DateTimeImmutable $birthday */
     private $birthday;
 
+    /** @var array $info */
     private $info;
+
+    /**
+     * @var string|null
+     */
+    private $other;
 
     public function __construct(
         string $lastname,
         string $firstname,
-        $birthday,
-        array $info
+        array $info,
+        string $other = null
     )
     {
         $this->firstname = $firstname;
         $this->lastname = $lastname;
-        $this->birthday = $birthday;
+        $this->birthday = new DateTimeImmutable("now");
         $this->info = $info;
+        $this->other = $other;
     }
 
     public function getFirstname(): string
@@ -49,5 +56,13 @@ class User
     public function getInfo(): array
     {
         return $this->info;
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getOther()
+    {
+        return $this->other;
     }
 }
