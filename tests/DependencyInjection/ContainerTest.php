@@ -10,6 +10,8 @@ use Tests\ConsoleDebugger;
 use Tests\DependencyInjection\Classes\Bar;
 use Tests\DependencyInjection\Classes\Foo;
 use Tests\DependencyInjection\Classes\Interfaces\FooInterface;
+use Tests\DependencyInjection\Classes\User;
+use DateTimeImmutable;
 
 class ContainerTest extends TestCase
 {
@@ -23,6 +25,25 @@ class ContainerTest extends TestCase
     protected function setUp(): void
     {
        $this->container = new Container();
+    }
+
+    public function testResolveClassWithRegisterParameters(): void
+    {
+        $this->container
+            ->addParameter("lastname", "Doe")
+            ->addParameter("firstname", "John")
+            ->addParameter("birthday", new DateTimeImmutable("now"))
+            ->addParameter("info", ["age" => 18]);
+
+        $user = $this->container->get(User::class);
+
+        $this->assertInstanceOf(User::class, $user);
+        $this->assertEquals("Doe", $user->getLastname());
+        $this->assertEquals("John", $user->getFirstname());
+        $this->assertInstanceOf(DateTimeImmutable::class, $user->getBirthday());
+        $this->assertIsArray($user->getInfo());
+        $this->assertArrayHasKey("age", $user->getInfo());
+        $this->assertTrue(in_array(18, $user->getInfo()));
     }
 
     public function testResolveClassWithoutDependency(): void
