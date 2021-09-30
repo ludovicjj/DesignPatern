@@ -10,12 +10,13 @@ class Container implements ContainerInterface
 {
     private $instances = [];
 
-    /**
-     * @var Definition[] $definitions
-     */
+    /** @var Definition[] $definitions */
     private $definitions = [];
 
     private $aliases = [];
+
+    /** @var mixed[] */
+    private $parameters = [];
 
     public function get(string $id)
     {
@@ -25,25 +26,31 @@ class Container implements ContainerInterface
                 throw new NotFoundException();
             }
 
-            $instance = $this->getDefinition($id)->newInstance();
+            $instance = $this->getDefinition($id)->newInstance($this);
             $this->instances[$id] = $instance;
         }
 
         return $this->instances[$id];
     }
 
-    public function getDefinition($id): Definition
+    public function has(string $id): bool
+    {
+        return array_key_exists($id, $this->instances);
+    }
+
+    public function getDefinition(string $id): Definition
     {
         if (!array_key_exists($id, $this->definitions)) {
-            $this->makeDefinition($id);
+            $this->resolveDefinition($id);
         }
 
         return $this->definitions[$id];
     }
 
-    public function makeDefinition(string $id): void
+    public function resolveDefinition(string $id): void
     {
         $reflectionClass = new ReflectionClass($id);
+        $dependencies = [];
 
         // case interface
         if ($reflectionClass->isInterface()) {
@@ -51,16 +58,22 @@ class Container implements ContainerInterface
                 throw new NotFoundException();
             }
 
-            $this->makeDefinition($this->aliases[$id]);
+            $this->resolveDefinition($this->aliases[$id]);
             $this->definitions[$id] = $this->definitions[$this->aliases[$id]];
             return;
         }
 
-        if ($this->hasConstructor($reflectionClass)) {
-            $parameters = $this->getConstructorParameters($reflectionClass);
-            $dependencies = (!empty($parameters)) ? $this->getDefinitionParameters($parameters): [];
-        } else {
-            $dependencies = [];
+        // case constructor
+        if ($reflectionClass->getConstructor() !== null) {
+            $parameters = $reflectionClass->getConstructor()->getParameters();
+
+            $classParameters = array_filter($parameters, function (ReflectionParameter $parameter) {
+                return $parameter->getClass();
+            });
+
+            $dependencies = array_map(function (ReflectionParameter $classParameter) {
+                return $this->getDefinition($classParameter->getClass()->getName());
+            }, $classParameters);
         }
 
         $alias = array_filter($this->aliases, function ($alias) use ($id) {
@@ -70,52 +83,28 @@ class Container implements ContainerInterface
         $this->definitions[$id] = new Definition($id, $alias, $dependencies);
     }
 
-    /**
-     * Check if giver key already exist
-     *
-     * @param string $id
-     * @return bool
-     */
-    public function has(string $id): bool
+    public function addAlias(string $alias, string $target): ContainerInterface
     {
-        return array_key_exists($id, $this->instances);
+        $this->aliases[$alias] = $target;
+        return $this;
     }
 
-    public function addAlias(string $id, string $class): Container
+    public function addParameter(string $name, $value): ContainerInterface
     {
-        $this->aliases[$id] = $class;
+        $this->parameters[$name] = $value;
         return $this;
     }
 
     /**
-     * @return Definition[]
+     * @param string $name
+     * @return mixed
+     * @throws NotFoundException
      */
-    public function getDefinitions(): array
+    public function getParameter(string $name)
     {
-        return $this->definitions;
-    }
-
-    private function hasConstructor(ReflectionClass $reflectionClass): bool
-    {
-        return $reflectionClass->getConstructor() !== null;
-    }
-
-    /**
-     * @param ReflectionClass $reflectionClass
-     * @return array|ReflectionParameter[]
-     */
-    private function getConstructorParameters(ReflectionClass $reflectionClass): array
-    {
-        $reflectionMethod = $reflectionClass->getConstructor();
-        return $reflectionMethod->getParameters();
-    }
-
-    private function getDefinitionParameters(array $reflectionParameters): array
-    {
-        return array_map(function (ReflectionParameter $parameter) {
-            return $this->getDefinition($parameter->getClass()->getName());
-        }, array_filter($reflectionParameters, function ($parameter) {
-            return $parameter->getClass();
-        }));
+        if (!array_key_exists($name, $this->parameters)) {
+            throw new NotFoundException();
+        }
+        return $this->parameters[$name];
     }
 }
