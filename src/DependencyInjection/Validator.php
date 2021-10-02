@@ -11,58 +11,69 @@ class Validator
     /** @var string $class */
     private $class;
 
+    /** @var string $method */
+    private $method;
+
     private const ALLOWED_TYPE = [
-        "int" => "integer",
-        "integer" => "integer",
-        "array" => "array",
-        "float" => "float",
         "string" => "string",
-        "callable" => "Closure",
-        "boolean" => "bool",
+        "int" => "integer",
+        "array" => "array",
+        "bool" => "boolean",
+        "float" => "double",
         "double" => "double",
+        "callable" => "Closure",
         "NULL" => "NULL"
     ];
 
     public function __construct(string $class)
     {
         $this->class = $class;
+        $this->method = "__construct()";
     }
 
     public function validConstructorParameters(
         array $expectedParameter,
-        array $givenParameter,
-        string $method = "__construct()"
+        array $givenParameter
     ): ParameterErrorList
     {
         $expectedType = $this->getExpectedConstructorParameterType($expectedParameter);
         $givenType = $this->getGivenParametersType($givenParameter, $expectedType);
-        $errors = $this->getErrors($expectedType, $givenType, $method);
+        $errors = $this->getErrors($expectedType, $givenType);
 
         return new ParameterErrorList($errors);
     }
 
-    private function getExpectedConstructorParameterType(array $reflectionParameters)
+    /**
+     * Get Type for each reflection parameter from reflection method
+     *
+     * @param array $reflectionParameters
+     * @return array<string, string>
+     */
+    private function getExpectedConstructorParameterType(array $reflectionParameters): array
     {
-        $expectedType = [];
+        return array_reduce($reflectionParameters, function($accumulator, ReflectionParameter $reflectionParameter) {
+            $reflectionType = $reflectionParameter->getType();
+            $paramName = $reflectionParameter->getName();
 
-        /** @var ReflectionParameter $reflectionParameter */
-        foreach ($reflectionParameters as $reflectionParameter) {
-            if ($reflectionParameter->isOptional()) {
+            if ($reflectionType instanceof ReflectionNamedType) {
+                $accumulator[$paramName] = $reflectionType->getName();
+            }
+
+            if ($reflectionType instanceof ReflectionNamedType && $reflectionParameter->isOptional()) {
                 if ($reflectionParameter->isDefaultValueAvailable()) {
-                    $expectedType[$reflectionParameter->getName()] = gettype($reflectionParameter->getDefaultValue());
+                    $type = gettype($reflectionParameter->getDefaultValue());
+                    $accumulator[$paramName] = "{$reflectionType->getName()}|{$type}";
                 } else {
-                    $expectedType[$reflectionParameter->getName()] = "unknown type";
-                }
-            } else {
-                $reflectionType = $reflectionParameter->getType();
-                if ($reflectionType instanceof ReflectionNamedType) {
-                    $expectedType[$reflectionParameter->getName()] = $reflectionType->getName();
-                } else {
-                    $expectedType[$reflectionParameter->getName()] = $reflectionType;
+                    $accumulator[$paramName] = "{$reflectionType->getName()}";
                 }
             }
-        }
-        return $expectedType;
+
+            if ($reflectionType === null) {
+                $accumulator[$paramName] = "mixed";
+            }
+
+            return $accumulator;
+        }, []);
     }
 
     private function getGivenParametersType(array $givenParameters, array $expectedType): array
@@ -80,20 +91,29 @@ class Validator
         }, $givenParameters, $expectedType);
     }
 
-    private function getErrors(array $expectedType, array $givenType, string $method): array
+    private function getErrors(array $expectedType, array $givenType): array
     {
-        $invalidParameters = array_map(function ($expected, $given, $parameterName) use ($method) {
-            if ($expected !== null) {
-                if ($expected !== $given) {
-                    if (array_key_exists($given, self::ALLOWED_TYPE)) {
-                        if (self::ALLOWED_TYPE[$expected] === $given) {
-                            return null;
-                        }
-                    }
-                    return new ParameterError($this->class, $method, $parameterName, $expected, $given);
+        $invalidParameters = array_map(function ($expected, $given, $parameterName) {
+            if ($expected === "mixed") {
+                return null;
+            }
+
+            if (preg_match("#^$expected$#", $given)) {
+                return null;
+            }
+
+            if ($expected === $given) {
+                return null;
+            }
+
+            if (array_key_exists($expected, self::ALLOWED_TYPE)) {
+                if (self::ALLOWED_TYPE[$expected] === $given) {
+                    return null;
                 }
             }
-            return null;
+
+            return new ParameterError($this->class, $this->method, $parameterName, $expected, $given);
+
         },$expectedType, $givenType, array_keys($expectedType));
 
         return array_filter($invalidParameters, function($value){

@@ -54,7 +54,7 @@ class Container implements ContainerInterface
         // case interface
         if ($reflectionClass->isInterface()) {
             if (!array_key_exists($id, $this->aliases)) {
-                throw new NotFoundException("Provide an alias with target class for {$id}");
+                throw new NotFoundException("Alias {$id} not found.");
             }
             $this->resolveDefinition($this->aliases[$id]);
             $this->definitions[$id] = $this->definitions[$this->aliases[$id]];
@@ -101,8 +101,13 @@ class Container implements ContainerInterface
     public function getParameter(string $name)
     {
         if (!array_key_exists($name, $this->parameters)) {
-            throw new NotFoundException("Provide value for parameter {$name}");
+            throw new NotFoundException("Provide value for parameter {$name}.");
         }
         return $this->parameters[$name];
+    }
+
+    public function hasParameter(string $name): bool
+    {
+        return isset($this->parameters[$name]);
     }
 }

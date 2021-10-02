@@ -4,23 +4,24 @@
 namespace Tests\DependencyInjection;
 
 use App\DependencyInjection\Container;
-use App\DependencyInjection\Definition;
+use App\DependencyInjection\Exception\ContainerException;
+use App\DependencyInjection\Exception\NotFoundException;
 use PHPUnit\Framework\TestCase;
-use Tests\ConsoleDebugger;
-use Tests\DependencyInjection\Classes\Bar;
-use Tests\DependencyInjection\Classes\Foo;
-use Tests\DependencyInjection\Classes\Interfaces\FooInterface;
-use Tests\DependencyInjection\Classes\Interfaces\SolInterface;
-use Tests\DependencyInjection\Classes\Sol;
-use Tests\DependencyInjection\Classes\User;
+use Tests\DependencyInjection\Utils\Interfaces\NoScalarFourInterface;
+use Tests\DependencyInjection\Utils\Interfaces\NoScalarOneInterface;
+use Tests\DependencyInjection\Utils\Interfaces\NoScalarThreeInterface;
+use Tests\DependencyInjection\Utils\Interfaces\NoScalarTwoInterface;
+use Tests\DependencyInjection\Utils\NoDependency\NoDependency;
+use Tests\DependencyInjection\Utils\NoScalarDependency\NoScalarFour;
+use Tests\DependencyInjection\Utils\NoScalarDependency\NoScalarOne;
+use Tests\DependencyInjection\Utils\NoScalarDependency\NoScalarThree;
+use Tests\DependencyInjection\Utils\NoScalarDependency\NoScalarTwo;
+use Tests\DependencyInjection\Utils\ScalarDependency\ScalarOne;
 
 class ContainerTest extends TestCase
 {
-    use ConsoleDebugger;
 
-    /**
-     * @var Container $container
-     */
+    /** @var Container $container */
     private $container;
 
     protected function setUp(): void
@@ -28,57 +29,93 @@ class ContainerTest extends TestCase
        $this->container = new Container();
     }
 
-    public function testResolveClassWithoutDependency(): void
+    public function testNotFoundExceptionWithInvalidClassName(): void
     {
-        $foo = $this->container->get(Foo::class);
-        $definition = $this->container->getDefinition(Foo::class);
-
-        $this->assertInstanceOf(Foo::class, $foo);
-        $this->assertInstanceOf(Definition::class, $definition);
-        $this->assertCount(0, $definition->getAlias());
-        $this->assertEquals(Foo::class, $definition->getId());
+        $this->expectException(NotFoundException::class);
+        $this->expectErrorMessage("Provide a valid class or interface.");
+        $this->container->get("test");
     }
 
-    public function testResolveClassWithoutDependencyAndWithAlias(): void
+    public function testResolveClassWithNoDependency(): void
     {
-        $this->container->addAlias("FooInterface", Foo::class);
-        $this->container->get(Foo::class);
-        $definition = $this->container->getDefinition(Foo::class);
-
-        $this->assertCount(1, $definition->getAlias());
+        $obj = $this->container->get(NoDependency::class);
+        $this->assertInstanceOf(NoDependency::class, $obj);
     }
 
-    public function testResolveInterface(): void
+    public function testSingleton(): void
     {
-        $this->container->addAlias(FooInterface::class, Foo::class);
-        $foo = $this->container->get(FooInterface::class);
-        $this->assertInstanceOf(Foo::class, $foo);
+        $instance1 = $this->container->get(NoDependency::class);
+        $instance2 = $this->container->get(NoDependency::class);
+        $this->assertEquals(spl_object_id($instance1), spl_object_id($instance2));
     }
 
-    public function testResolveClassWithAliasesInterface(): void
+    public function testNotFoundExceptionWithMissingParameters(): void
     {
-        $this->container->addAlias(FooInterface::class, Foo::class);
-        $this->container->addAlias(SolInterface::class, Sol::class);
-        $this->container->addParameter("age", 15);
-        $obj = $this->container->get(Bar::class);
-        $this->assertInstanceOf(Bar::class, $obj);
+        $this->expectException(NotFoundException::class);
+        $this->expectErrorMessage("Provide value for parameter arg1.");
+        $this->container->get(ScalarOne::class);
     }
-
-    public function testResolveClassWithRegisterParameters(): void
+    public function testContainerExceptionWhenResolveClassWithInvalidParameterType()
     {
         $this->container
-            ->addParameter("lastname", "Doe")
-            ->addParameter("firstname", "John")
-            ->addParameter("info", ["age" => 18]);
+            ->addParameter("arg1", "test")
+            ->addParameter("arg2", 42)
+            ->addParameter("arg3", 1.25)
+            ->addParameter("arg4", [1,2,3])
+            ->addParameter("arg5", true)
+            ->addParameter("arg6", function() {})
+            ->addParameter("arg7", new \DateTimeImmutable())
+            ->addParameter("arg8", "update default value");
 
-        $user = $this->container->get(User::class);
-
-        $this->assertInstanceOf(User::class, $user);
-        $this->assertEquals("Doe", $user->getLastname());
-        $this->assertEquals("John", $user->getFirstname());
-        $this->assertArrayHasKey("age", $user->getInfo());
-        $this->assertTrue(in_array(18, $user->getInfo()));
-        $this->assertNull($user->getOther());
+        $this->expectException(ContainerException::class);
+        $this->expectErrorMessage(ScalarOne::class . "::__construct(), parameter arg7 expected DateTime given DateTimeImmutable");
+        $this->container->get(ScalarOne::class);
     }
 
+    public function testResolveClassWithOnlyScalarDependencies(): void
+    {
+        $this->container
+            ->addParameter("arg1", "test")
+            ->addParameter("arg2", 42)
+            ->addParameter("arg3", 1.25)
+            ->addParameter("arg4", [1,2,3])
+            ->addParameter("arg5", true)
+            ->addParameter("arg6", function() {})
+            ->addParameter("arg7", new \DateTime())
+            ->addParameter("arg8", "update default value")
+            ->addParameter("arg9", 15);
+        $obj = $this->container->get(ScalarOne::class);
+        $this->assertInstanceOf(ScalarOne::class, $obj);
+    }
+
+    public function testResolveClassWithDependency(): void
+    {
+        $obj = $this->container->get(NoScalarOne::class);
+        $this->assertInstanceOf(NoScalarOne::class, $obj);
+    }
+
+    public function testNotFoundExceptionWithMissingAlias(): void
+    {
+        $this->expectException(NotFoundException::class);
+        $this->expectErrorMessage("Alias ". NoScalarTwoInterface::class ." not found.");
+        $this->container->get(NoScalarTwoInterface::class);
+    }
+
+    public function testContainerExceptionClassNotImplementInterface(): void
+    {
+        $this->container->addAlias(NoScalarTwoInterface::class, NoScalarTwo::class);
+        $this->container->addAlias(NoScalarOneInterface::class, NoScalarOne::class);
+        $this->expectException(ContainerException::class);
+        $this->expectErrorMessage(NoScalarTwo::class . "::__construct(), parameter arg expected ".NoScalarOneInterface::class." given ".NoScalarOne::class);
+        $this->container->get(NoScalarTwoInterface::class);
+    }
+
+    public function testResolveInterface()
+    {
+        $this->container->addAlias(NoScalarThreeInterface::class, NoScalarThree::class);
+        $this->container->addAlias(NoScalarFourInterface::class, NoScalarFour::class);
+
+        $obj = $this->container->get(NoScalarFourInterface::class);
+        $this->assertInstanceOf(NoScalarFour::class, $obj);
+    }
 }

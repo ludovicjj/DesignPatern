@@ -31,29 +31,10 @@ class Definition
         $this->dependencies = $dependencies;
     }
 
-    public function getId(): string
-    {
-        return $this->id;
-    }
-
-    public function getAlias(): array
-    {
-        return $this->alias;
-    }
-
-    /**
-     * @return Definition[]
-     */
-    public function getDependencies(): array
-    {
-        return $this->dependencies;
-    }
-
     public function newInstance(ContainerInterface $container)
     {
         $reflectionClass = new ReflectionClass($this->id);
         $constructor = $reflectionClass->getConstructor();
-
         if ($constructor === null) {
             return $reflectionClass->newInstance();
         }
@@ -61,12 +42,18 @@ class Definition
         $args = array_map(function (ReflectionParameter $reflectionParameter) use ($container) {
             // get dependency class.
             if ($reflectionParameter->getClass()) {
+                if ($container->hasParameter($reflectionParameter->getName())) {
+                    return $container->getParameter($reflectionParameter->getName());
+                }
                 return $container->get($reflectionParameter->getClass()->getName());
             }
 
             // get dependency with default value.
             if ($reflectionParameter->isOptional()) {
                 if ($reflectionParameter->isDefaultValueAvailable()) {
+                    if ($container->hasParameter($reflectionParameter->getName())) {
+                        return $container->getParameter($reflectionParameter->getName());
+                    }
                     return $reflectionParameter->getDefaultValue();
                 }
             }
