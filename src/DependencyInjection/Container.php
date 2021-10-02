@@ -2,6 +2,7 @@
 
 namespace App\DependencyInjection;
 
+use App\DependencyInjection\Exception\NotFoundException;
 use ReflectionClass;
 use ReflectionParameter;
 
@@ -22,9 +23,8 @@ class Container implements ContainerInterface
     {
         if (!$this->has($id)) {
             if (!class_exists($id) && !interface_exists($id)) {
-                throw new NotFoundException();
+                throw new NotFoundException("Provide a valid class or interface.");
             }
-
             $definition = $this->getDefinition($id);
             $this->instances[$id] = $definition->newInstance($this);
         }
@@ -54,9 +54,8 @@ class Container implements ContainerInterface
         // case interface
         if ($reflectionClass->isInterface()) {
             if (!array_key_exists($id, $this->aliases)) {
-                throw new NotFoundException();
+                throw new NotFoundException("Provide an alias with target class for {$id}");
             }
-
             $this->resolveDefinition($this->aliases[$id]);
             $this->definitions[$id] = $this->definitions[$this->aliases[$id]];
             return;
@@ -102,7 +101,7 @@ class Container implements ContainerInterface
     public function getParameter(string $name)
     {
         if (!array_key_exists($name, $this->parameters)) {
-            throw new NotFoundException();
+            throw new NotFoundException("Provide value for parameter {$name}");
         }
         return $this->parameters[$name];
     }

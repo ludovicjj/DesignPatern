@@ -4,9 +4,12 @@
 namespace Tests\DependencyInjection\Classes;
 
 
+use Tests\DependencyInjection\Classes\Interfaces\FooInterface;
+use Tests\DependencyInjection\Classes\Interfaces\SolInterface;
+
 class Bar
 {
-    public function __construct(Foo $foo, string $firstname = "john")
+    public function __construct(FooInterface $foo, int $age, SolInterface $sol)
     {
     }
 }

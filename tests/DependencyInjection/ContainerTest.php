@@ -10,8 +10,9 @@ use Tests\ConsoleDebugger;
 use Tests\DependencyInjection\Classes\Bar;
 use Tests\DependencyInjection\Classes\Foo;
 use Tests\DependencyInjection\Classes\Interfaces\FooInterface;
+use Tests\DependencyInjection\Classes\Interfaces\SolInterface;
+use Tests\DependencyInjection\Classes\Sol;
 use Tests\DependencyInjection\Classes\User;
-use DateTimeImmutable;
 
 class ContainerTest extends TestCase
 {
@@ -25,29 +26,6 @@ class ContainerTest extends TestCase
     protected function setUp(): void
     {
        $this->container = new Container();
-    }
-
-    public function testResolveClassWithDependency(): void
-    {
-        $bar = $this->container->get(Bar::class);
-        $this->assertInstanceOf(Bar::class, $bar);
-    }
-
-    public function testResolveClassWithRegisterParameters(): void
-    {
-        $this->container
-            ->addParameter("lastname", "Doe")
-            ->addParameter("firstname", "John")
-            ->addParameter("info", ["age" => 18]);
-
-        $user = $this->container->get(User::class);
-
-        $this->assertInstanceOf(User::class, $user);
-        $this->assertEquals("Doe", $user->getLastname());
-        $this->assertEquals("John", $user->getFirstname());
-        $this->assertArrayHasKey("age", $user->getInfo());
-        $this->assertTrue(in_array(18, $user->getInfo()));
-        $this->assertNull($user->getOther());
     }
 
     public function testResolveClassWithoutDependency(): void
@@ -75,6 +53,32 @@ class ContainerTest extends TestCase
         $this->container->addAlias(FooInterface::class, Foo::class);
         $foo = $this->container->get(FooInterface::class);
         $this->assertInstanceOf(Foo::class, $foo);
+    }
+
+    public function testResolveClassWithAliasesInterface(): void
+    {
+        $this->container->addAlias(FooInterface::class, Foo::class);
+        $this->container->addAlias(SolInterface::class, Sol::class);
+        $this->container->addParameter("age", 15);
+        $obj = $this->container->get(Bar::class);
+        $this->assertInstanceOf(Bar::class, $obj);
+    }
+
+    public function testResolveClassWithRegisterParameters(): void
+    {
+        $this->container
+            ->addParameter("lastname", "Doe")
+            ->addParameter("firstname", "John")
+            ->addParameter("info", ["age" => 18]);
+
+        $user = $this->container->get(User::class);
+
+        $this->assertInstanceOf(User::class, $user);
+        $this->assertEquals("Doe", $user->getLastname());
+        $this->assertEquals("John", $user->getFirstname());
+        $this->assertArrayHasKey("age", $user->getInfo());
+        $this->assertTrue(in_array(18, $user->getInfo()));
+        $this->assertNull($user->getOther());
     }
 
 }

@@ -3,8 +3,12 @@
 
 namespace App\DependencyInjection;
 
+use App\DependencyInjection\Exception\ContainerException;
+use phpDocumentor\Reflection\DocBlock\Tags\Throws;
 use ReflectionClass;
+use ReflectionNamedType;
 use ReflectionParameter;
+use Tests\DependencyInjection\Classes\Bar;
 
 class Definition
 {
@@ -57,23 +61,34 @@ class Definition
             return $reflectionClass->newInstance();
         }
 
-        $args = array_map(function (ReflectionParameter $parameter) use ($container) {
+        $args = array_map(function (ReflectionParameter $reflectionParameter) use ($container) {
             // get dependency class.
-            if ($parameter->getClass()) {
-                return $container->get($parameter->getClass()->getName());
+            if ($reflectionParameter->getClass()) {
+                return $container->get($reflectionParameter->getClass()->getName());
             }
 
             // get dependency with default value.
-            if ($parameter->isOptional()) {
-                if ($parameter->isDefaultValueAvailable()) {
-                    return $parameter->getDefaultValue();
+            if ($reflectionParameter->isOptional()) {
+                if ($reflectionParameter->isDefaultValueAvailable()) {
+                    return $reflectionParameter->getDefaultValue();
                 }
             }
 
             // get dependency register as parameter.
-            return $container->getParameter($parameter->getName());
+            return $container->getParameter($reflectionParameter->getName());
 
         }, $constructor->getParameters());
+
+
+        $validator = new Validator($this->id);
+        $errorList = $validator->validConstructorParameters($constructor->getParameters(), $args);
+        if ($errorList->count() > 0) {
+            /** @var ParameterError $error */
+            foreach ($errorList as $error) {
+                throw new ContainerException($error->getMessage());
+            }
+        }
+
 
         return $reflectionClass->newInstanceArgs($args);
     }

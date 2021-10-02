@@ -1,7 +1,7 @@
 <?php
 
 
-namespace App\DependencyInjection;
+namespace App\DependencyInjection\Exception;
 
 use Exception;
 use Psr\Container\NotFoundExceptionInterface;
