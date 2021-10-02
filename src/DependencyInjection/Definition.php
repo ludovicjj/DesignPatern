@@ -4,11 +4,8 @@
 namespace App\DependencyInjection;
 
 use App\DependencyInjection\Exception\ContainerException;
-use phpDocumentor\Reflection\DocBlock\Tags\Throws;
 use ReflectionClass;
-use ReflectionNamedType;
 use ReflectionParameter;
-use Tests\DependencyInjection\Classes\Bar;
 
 class Definition
 {
